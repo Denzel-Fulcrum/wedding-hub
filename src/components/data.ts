@@ -63,6 +63,156 @@ export type TimelineEvent = {
   id: string; t: string; e: string; w: string; big?: boolean;
 }
 
+export type ChainStep = {
+  id: string;
+  what: string;
+  who: string;
+  when: string;
+  where: string;
+  notes: string;
+  status: 'done' | 'planned' | 'gap';
+  dayTime?: string;
+}
+
+export type Chain = {
+  id: string;
+  name: string;
+  color: string;
+  span: string;
+  steps: ChainStep[];
+}
+
+export const INITIAL_CHAINS: Chain[] = [
+  {id:"ch1",name:"Legal + documents",color:"#3a7a5a",span:"Mar \u2192 Post-wedding",steps:[
+    {id:"ls1",what:"Gather original birth certs / passports",who:"",when:"Mar",where:"Home",notes:"Needed for NOIM",status:"gap"},
+    {id:"ls2",what:"Lodge NOIM with priest",who:"Both",when:"Mar",where:"Church",notes:"Legal requirement, 1+ month before wedding",status:"gap"},
+    {id:"ls3",what:"Confirm 2 witnesses (18+)",who:"",when:"May",where:"",notes:"Physically present at ceremony",status:"planned"},
+    {id:"ls4",what:"Witnesses sign marriage docs",who:"Witnesses",when:"Day of",where:"Church",notes:"After ceremony",status:"planned",dayTime:"~1:00pm"},
+    {id:"ls5",what:"Collect marriage docs at pack-down",who:"",when:"Day of",where:"Venue",notes:"DON'T LEAVE AT VENUE",status:"gap",dayTime:"10:00pm"},
+    {id:"ls6",what:"Lodge marriage cert with BDM Victoria",who:"",when:"Post week 1",where:"Online",notes:"Time-sensitive",status:"planned"},
+  ]},
+  {id:"ch2",name:"Cake",color:"#c97a6a",span:"Apr \u2192 Day of",steps:[
+    {id:"cs1",what:"Research cake vendors for 100",who:"Both",when:"Apr",where:"",notes:"Small cutting cake + sheet cakes",status:"planned"},
+    {id:"cs2",what:"Get quotes from 2-3 vendors",who:"",when:"Apr-May",where:"",notes:"Compare prices",status:"planned"},
+    {id:"cs3",what:"Taste test + book vendor",who:"Both",when:"May",where:"",notes:"",status:"planned"},
+    {id:"cs4",what:"Confirm flavour, size, delivery",who:"",when:"Oct",where:"",notes:"Final details",status:"planned"},
+    {id:"cs5",what:"Ask caterer if they can plate/serve external cake",who:"",when:"Nov",where:"",notes:"Depends on: menu finalised",status:"gap"},
+    {id:"cs6",what:"Cake delivered to venue",who:"",when:"Day of",where:"Venue",notes:"WHO receives it? What time?",status:"gap",dayTime:"2:00pm"},
+    {id:"cs7",what:"Cake cutting moment",who:"Both",when:"Day of",where:"Venue",notes:"MC cues it. Photographer ready.",status:"planned",dayTime:"~8:00pm"},
+    {id:"cs8",what:"Leftover cake \u2014 who takes home?",who:"",when:"Day of",where:"Venue",notes:"",status:"gap",dayTime:"10:00pm"},
+  ]},
+  {id:"ch3",name:"Menu + catering",color:"#6a8aaa",span:"Booked \u2192 Day of",steps:[
+    {id:"ms1",what:"Caterer booked, deposit paid",who:"",when:"Done",where:"",notes:"$75/head, flexible",status:"done"},
+    {id:"ms2",what:"Second meeting \u2014 choose dishes",who:"Both",when:"Apr",where:"",notes:"Mains, sides, shared platters. Kids menu.",status:"planned"},
+    {id:"ms3",what:"Confirm canapes for cocktail hour",who:"",when:"Apr",where:"",notes:"Included or extra cost?",status:"planned"},
+    {id:"ms4",what:"Decide bar tab amount",who:"Both",when:"Apr",where:"",notes:"$2-3k typical",status:"gap"},
+    {id:"ms5",what:"Compile dietary requirements from WithJoy",who:"",when:"Sep",where:"",notes:"Depends on: RSVPs chased",status:"planned"},
+    {id:"ms6",what:"Send final headcount + dietary to caterer",who:"",when:"Nov wk1",where:"",notes:"Include vendor meals, kids",status:"planned"},
+    {id:"ms7",what:"Canapes served \u2014 cocktail hour",who:"Caterer",when:"Day of",where:"Venue",notes:"",status:"planned",dayTime:"4:00pm"},
+    {id:"ms8",what:"Dinner served \u2014 sit-down",who:"Caterer",when:"Day of",where:"Venue",notes:"",status:"planned",dayTime:"6:00pm"},
+  ]},
+  {id:"ch4",name:"Flowers",color:"#8a6aaa",span:"Booked \u2192 Day of",steps:[
+    {id:"fs1",what:"Florist booked \u2014 $1,200",who:"",when:"Done",where:"",notes:"$500 deposit. Bouquets, buttonholes, centrepieces chosen",status:"done"},
+    {id:"fs2",what:"Confirm delivery logistics with florist",who:"",when:"Mar",where:"",notes:"How many locations? Pickup day before?",status:"gap"},
+    {id:"fs3",what:"Final confirmation with florist",who:"",when:"Oct",where:"",notes:"Flowers, delivery, times",status:"planned"},
+    {id:"fs4",what:"Bouquets + corsages delivered to bride's house",who:"Florist",when:"Day of",where:"Bride's house",notes:"Before 9am?",status:"gap",dayTime:"~8:00am"},
+    {id:"fs5",what:"Buttonholes to groom",who:"",when:"Day of",where:"Groom's house or church?",notes:"45 MIN AWAY. Pickup day before? Deliver to church?",status:"gap",dayTime:"~9:00am"},
+    {id:"fs6",what:"Church flowers set up",who:"Florist?",when:"Day of",where:"Church",notes:"By 11am",status:"planned",dayTime:"~10:30am"},
+    {id:"fs7",what:"Centrepieces to venue \u2014 setup crew places",who:"Setup crew",when:"Day of",where:"Venue",notes:"",status:"planned",dayTime:"2:00pm"},
+    {id:"fs8",what:"End of night \u2014 who takes flowers?",who:"",when:"Day of",where:"Venue",notes:"Leave? Pack down?",status:"gap",dayTime:"10:00pm"},
+  ]},
+  {id:"ch5",name:"Rings",color:"#6a9a8a",span:"Now \u2192 Ceremony",steps:[
+    {id:"rs1",what:"Buy wedding rings",who:"Both",when:"Now",where:"",notes:"4-6 weeks for sizing/engraving",status:"planned"},
+    {id:"rs2",what:"Collect rings \u2014 check sizing",who:"Both",when:"+6 weeks",where:"Jeweller",notes:"",status:"planned"},
+    {id:"rs3",what:"WHO has rings morning of?",who:"",when:"Day of",where:"",notes:"Best man? Ring wrangler?",status:"gap",dayTime:"morning"},
+    {id:"rs4",what:"3 kid cousins carry rings \u2014 who manages them?",who:"",when:"Day of",where:"Church",notes:"Parent or bridal party member",status:"gap",dayTime:"12:00pm"},
+    {id:"rs5",what:"Exchange rings at ceremony",who:"Both",when:"Day of",where:"Church",notes:"",status:"planned",dayTime:"12:00pm"},
+  ]},
+  {id:"ch6",name:"Readings + church music",color:"#b98a6a",span:"Mar \u2192 Ceremony",steps:[
+    {id:"rms1",what:"Meet with priest \u2014 discuss options",who:"Both",when:"Mar",where:"Church",notes:"Also lodge NOIM",status:"planned"},
+    {id:"rms2",what:"Decide choir ($1,600) vs cheaper alternative",who:"Both",when:"Apr",where:"",notes:"Needs discussion",status:"gap"},
+    {id:"rms3",what:"Choose readings (2 + psalm + gospel)",who:"Both",when:"May",where:"",notes:"Priest can guide",status:"planned"},
+    {id:"rms4",what:"Assign readers \u2014 ask them + send text",who:"Both",when:"Jun",where:"",notes:"After readings picked",status:"planned"},
+    {id:"rms5",what:"Book music \u2014 confirm song list with priest",who:"",when:"Jun",where:"",notes:"Processional, recessional, signing",status:"planned"},
+    {id:"rms6",what:"Lock processional + recessional music",who:"Both",when:"Jun",where:"",notes:"",status:"planned"},
+    {id:"rms7",what:"Church rehearsal \u2014 night before",who:"All",when:"Night before",where:"Church",notes:"Readers practice, processional walk-through",status:"planned"},
+    {id:"rms8",what:"Performed at ceremony",who:"All",when:"Day of",where:"Church",notes:"",status:"planned",dayTime:"12:00pm"},
+  ]},
+  {id:"ch7",name:"Seating + stationery",color:"#8aaa6a",span:"Mar \u2192 Day of",steps:[
+    {id:"ss1",what:"Chase ~50 non-RSVP guests",who:"Both",when:"Mar",where:"",notes:"Text/call individually",status:"planned"},
+    {id:"ss2",what:"Compile final guest list from WithJoy",who:"",when:"Sep",where:"",notes:"After RSVPs in",status:"planned"},
+    {id:"ss3",what:"Build seating plan",who:"Both",when:"Sep",where:"",notes:"Dynamics, kids table, mum's wheelchair",status:"planned"},
+    {id:"ss4",what:"Design + print nameplates",who:"",when:"Oct",where:"",notes:"Need final names",status:"planned"},
+    {id:"ss5",what:"Design + print shared menus (1 per table)",who:"",when:"Oct",where:"",notes:"Depends on: menu finalised",status:"planned"},
+    {id:"ss6",what:"Setup crew places nameplates + menus",who:"Setup crew",when:"Day of",where:"Venue",notes:"Need layout plan",status:"planned",dayTime:"2:00pm"},
+    {id:"ss7",what:"Collect menus + nameplates (keepsake?)",who:"",when:"Day of",where:"Venue",notes:"",status:"planned",dayTime:"10:00pm"},
+  ]},
+  {id:"ch8",name:"Groom + groomsmen outfits",color:"#a99a6a",span:"Apr \u2192 Day of",steps:[
+    {id:"gs1",what:"Buy groom suit + bow tie",who:"Groom",when:"Apr",where:"",notes:"Clean black",status:"planned"},
+    {id:"gs2",what:"Send colour reference to 4 groomsmen",who:"Groom",when:"Jun",where:"",notes:"After suit bought",status:"planned"},
+    {id:"gs3",what:"Groomsmen buy/find matching suits",who:"Groomsmen",when:"Jul-Sep",where:"",notes:"Own suits, coordinated colour",status:"planned"},
+    {id:"gs4",what:"Everyone confirms suit + sends photo",who:"All",when:"Nov",where:"",notes:"",status:"planned"},
+    {id:"gs5",what:"Groomsmen suit up at groom's house",who:"All",when:"Day of",where:"Groom's house",notes:"Leave by 10:30",status:"planned",dayTime:"~9:30am"},
+  ]},
+  {id:"ch9",name:"DJ + entertainment",color:"#c97a8a",span:"Mar \u2192 Day of",steps:[
+    {id:"ds1",what:"Confirm speakers for DJ friend",who:"",when:"Mar",where:"",notes:"Family member has them? Needs testing",status:"gap"},
+    {id:"ds2",what:"Build playlist \u2014 must-plays + do-not-plays",who:"Both",when:"Jul",where:"",notes:"Include first dance song",status:"planned"},
+    {id:"ds3",what:"Share playlist with DJ, confirm first dance",who:"",when:"Oct",where:"",notes:"Custom cousin song",status:"planned"},
+    {id:"ds4",what:"Test speakers at venue (or similar space)",who:"DJ + Groom",when:"Nov",where:"Venue?",notes:"Make sure they work",status:"planned"},
+    {id:"ds5",what:"DJ + speakers set up at venue",who:"DJ friend",when:"Day of",where:"Venue",notes:"",status:"planned",dayTime:"2:00pm"},
+    {id:"ds6",what:"First dance",who:"Both",when:"Day of",where:"Venue",notes:"Custom cousin song",status:"planned",dayTime:"7:40pm"},
+    {id:"ds7",what:"Open dance floor until last song",who:"DJ",when:"Day of",where:"Venue",notes:"",status:"planned",dayTime:"7:50pm"},
+  ]},
+  {id:"ch10",name:"Transport",color:"#9a7a3a",span:"Day of",steps:[
+    {id:"ts1",what:"Groom + groomsmen leave in own cars",who:"Groom",when:"Day of",where:"Groom's house \u2192 church",notes:"45 min drive. Who drives?",status:"planned",dayTime:"10:30am"},
+    {id:"ts2",what:"Sprinter picks up bride + bridesmaids",who:"Sprinter",when:"Day of",where:"Bride's house \u2192 church",notes:"$800, 5hr clock starts",status:"planned",dayTime:"10:45am"},
+    {id:"ts3",what:"Mum's accessible vehicle to church",who:"",when:"Day of",where:"\u2192 church",notes:"Sorted",status:"planned",dayTime:"~11:00am"},
+    {id:"ts4",what:"Car hire: church \u2192 Ripponlea",who:"Driver",when:"Day of",where:"Bride + groom only",notes:"$330, 3hr clock",status:"planned",dayTime:"1:15pm"},
+    {id:"ts5",what:"Sprinter: bridal party \u2192 Ripponlea \u2192 venue",who:"Sprinter",when:"Day of",where:"",notes:"",status:"planned",dayTime:"1:15pm"},
+    {id:"ts6",what:"Car hire: Ripponlea \u2192 venue",who:"Driver",when:"Day of",where:"",notes:"",status:"planned",dayTime:"~2:30pm"},
+    {id:"ts7",what:"100 guests self-drive church \u2192 venue",who:"Guests",when:"Day of",where:"",notes:"Do they all know the way? Send map?",status:"gap",dayTime:"~1:15pm"},
+    {id:"ts8",what:"Bride + groom Uber to Richmond hotel",who:"Both",when:"Day of",where:"Venue \u2192 hotel",notes:"~30 min",status:"planned",dayTime:"~10:15pm"},
+  ]},
+  {id:"ch11",name:"Overnight bags",color:"#4a7a9e",span:"Day before \u2192 Night",steps:[
+    {id:"obs1",what:"Pack overnight bags",who:"Both",when:"Night before",where:"Home",notes:"Clothes, toiletries, charger",status:"planned"},
+    {id:"obs2",what:"Bags go in whose car?",who:"",when:"Day of",where:"",notes:"Can't go in sprinter. Can't carry all day.",status:"gap",dayTime:"morning"},
+    {id:"obs3",what:"Someone checks into hotel + drops bags",who:"",when:"Day of",where:"Richmond hotel",notes:"During the gap (2-4pm)",status:"gap",dayTime:"~3:00pm"},
+    {id:"obs4",what:"Arrive at hotel \u2014 bags waiting",who:"Both",when:"Day of",where:"Richmond hotel",notes:"",status:"planned",dayTime:"~10:30pm"},
+  ]},
+  {id:"ch12",name:"Decorations",color:"#8a8580",span:"Now \u2192 Pack-down",steps:[
+    {id:"dcs1",what:"Finalise centrepiece design",who:"Both",when:"Now",where:"",notes:"Half done. 10 per table.",status:"planned"},
+    {id:"dcs2",what:"Source battery candles + cheesecloth",who:"",when:"Jun",where:"",notes:"No real candles allowed",status:"planned"},
+    {id:"dcs3",what:"Make/order welcome sign + card box",who:"",when:"Sep",where:"",notes:"DIY or buy?",status:"planned"},
+    {id:"dcs4",what:"Confirm draping with venue manager",who:"",when:"Nov",where:"Venue",notes:"Install cost?",status:"planned"},
+    {id:"dcs5",what:"Load everything into car",who:"",when:"Day of",where:"Home \u2192 car",notes:"WHO? Which car?",status:"gap",dayTime:"morning"},
+    {id:"dcs6",what:"Drive to venue by 2pm",who:"",when:"Day of",where:"\u2192 Venue",notes:"",status:"gap",dayTime:"~1:30pm"},
+    {id:"dcs7",what:"Setup crew places everything",who:"Setup crew",when:"Day of",where:"Venue",notes:"Need layout plan",status:"planned",dayTime:"2:00pm"},
+    {id:"dcs8",what:"Pack-down \u2014 collect ALL from venue",who:"",when:"Day of",where:"Venue",notes:"2-3 people. Card box has CASH.",status:"gap",dayTime:"10:00pm"},
+  ]},
+  {id:"ch13",name:"Camcorders + DIY video",color:"#6a5a8f",span:"Jul \u2192 Post-wedding",steps:[
+    {id:"vs1",what:"Source remaining camcorders + film cameras",who:"",when:"Jul",where:"",notes:"Some owned, some to buy/borrow",status:"planned"},
+    {id:"vs2",what:"Create mission cards for tables",who:"",when:"Oct",where:"",notes:"Instructions for guests",status:"planned"},
+    {id:"vs3",what:"Charge ALL cameras",who:"",when:"Night before",where:"Home",notes:"Every single one",status:"planned"},
+    {id:"vs4",what:"Cameras to bride + groom houses for morning",who:"",when:"Day of",where:"Both houses",notes:"Film getting-ready",status:"planned",dayTime:"morning"},
+    {id:"vs5",what:"Setup crew places cameras on tables",who:"Setup crew",when:"Day of",where:"Venue",notes:"+ mission cards",status:"planned",dayTime:"2:00pm"},
+    {id:"vs6",what:"WHO films key moments?",who:"",when:"Day of",where:"Venue",notes:"Entrance, speeches, first dance. Need dedicated person.",status:"gap",dayTime:"5:00pm"},
+    {id:"vs7",what:"Collect EVERY camera from every table",who:"",when:"Day of",where:"Venue",notes:"They WILL get lost if nobody's assigned",status:"gap",dayTime:"10:00pm"},
+    {id:"vs8",what:"All footage to one person \u2014 compile + edit",who:"",when:"Post-wedding",where:"",notes:"",status:"planned"},
+  ]},
+  {id:"ch14",name:"People roles (day-of)",color:"#c04848",span:"Assign by Oct",steps:[
+    {id:"ps1",what:"Morning coordinator (bride's side)",who:"",when:"Assign by Oct",where:"Bride's house",notes:"Keeps morning on track",status:"gap"},
+    {id:"ps2",what:"Church ushers (2)",who:"",when:"Assign by Oct",where:"Church",notes:"Seat guests, position mum",status:"gap"},
+    {id:"ps3",what:"Family photo wrangler",who:"",when:"Assign by Oct",where:"Church",notes:"Rounds up people fast",status:"gap"},
+    {id:"ps4",what:"Hotel check-in person",who:"",when:"Assign by Oct",where:"Richmond hotel",notes:"Drops bags during gap",status:"gap"},
+    {id:"ps5",what:"Guest greeter at venue 4pm",who:"",when:"Assign by Oct",where:"Venue",notes:"You arrive at 5pm",status:"gap"},
+    {id:"ps6",what:"Vendor point of contact",who:"",when:"Assign by Oct",where:"",notes:"Who do vendors call?",status:"gap"},
+    {id:"ps7",what:"Key moment filmer",who:"",when:"Assign by Oct",where:"Venue",notes:"Entrance, speeches, first dance",status:"gap"},
+    {id:"ps8",what:"Card box security (sober)",who:"",when:"Assign by Oct",where:"Venue",notes:"Takes cash home at 10pm",status:"gap"},
+    {id:"ps9",what:"Pack-down crew (2-3 people)",who:"",when:"Assign by Oct",where:"Venue",notes:"Collect everything",status:"gap"},
+    {id:"ps10",what:"Camcorder collector",who:"",when:"Assign by Oct",where:"Venue",notes:"Every camera, every table",status:"gap"},
+  ]},
+]
+
 export const INITIAL_TASKS: Task[] = [
   {id:"t1",zone:"legal",task:"Lodge NOIM with priest",status:"not-started",owner:"",dep:"",notes:"Must be 1+ month before. Need original birth certs/passports.",phase:"mar",ord:0},
   {id:"t2",zone:"legal",task:"Gather original birth certs / passports",status:"not-started",owner:"",dep:"",notes:"Needed for NOIM.",phase:"mar",ord:1},
