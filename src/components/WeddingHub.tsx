@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ZONES, STATUSES, BUDGET_STATES, PHASES, BUDGET_CATS, INITIAL_TASKS, INITIAL_BUDGET, INITIAL_TIMELINE, type Task, type BudgetItem, type TimelineEvent } from './data'
+import { ZONES, STATUSES, BUDGET_STATES, PHASES, BUDGET_CATS, INITIAL_TASKS, INITIAL_BUDGET, INITIAL_TIMELINE, INITIAL_CHAINS, type Task, type BudgetItem, type TimelineEvent, type Chain, type ChainStep } from './data'
 
 const WD = new Date('2026-11-28T12:00:00')
 const daysLeft = () => Math.max(0, Math.ceil((WD.getTime() - Date.now()) / 864e5))
@@ -17,42 +17,45 @@ export default function WeddingHub() {
   const [tasks, setT] = useState<Task[] | null>(null)
   const [bud, setB] = useState<BudgetItem[] | null>(null)
   const [tl, setTl] = useState<TimelineEvent[] | null>(null)
+  const [chains, setCh] = useState<Chain[] | null>(null)
   const [ld, setLd] = useState(true)
   const [zone, setZone] = useState<string | null>(null)
   const [editT, setEditT] = useState<string | null>(null)
   const [editB, setEditB] = useState<string | null>(null)
   const [editTl, setEditTl] = useState<string | null>(null)
-  const [msgs, setMsgs] = useState<{ r: string; t: string }[]>([])
-  const [ci, setCi] = useState('')
-  const [cl, setCl] = useState(false)
-  const cr = useRef<HTMLDivElement>(null)
+  const [openChains, setOC] = useState<Set<string>>(new Set())
+  const [editStep, setES] = useState<{chainId:string,stepId:string}|null>(null)
+  const [logView, setLV] = useState<'chains'|'gantt'>('chains')
+  const [ganttOpen, setGO] = useState<Set<string>>(new Set())
   const saveTimer = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
     (async () => {
-      const [t, b, tl2] = await Promise.all([load('wt'), load('wb'), load('wtl')])
-      setT(t || INITIAL_TASKS)
-      setB(b || INITIAL_BUDGET)
-      setTl(tl2 || INITIAL_TIMELINE)
+      const [t, b, tl2, ch] = await Promise.all([load('wt'), load('wb'), load('wtl'), load('wch')])
+      setT(t || INITIAL_TASKS); setB(b || INITIAL_BUDGET); setTl(tl2 || INITIAL_TIMELINE); setCh(ch || INITIAL_CHAINS)
       setLd(false)
     })()
   }, [])
 
-  const debounceSave = useCallback((key: string, val: any) => {
-    clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => save(key, val), 500)
-  }, [])
+  const ds = useCallback((key: string, val: any) => { clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => save(key, val), 500) }, [])
 
-  useEffect(() => { if (tasks && !ld) debounceSave('wt', tasks) }, [tasks])
-  useEffect(() => { if (bud && !ld) debounceSave('wb', bud) }, [bud])
-  useEffect(() => { if (tl && !ld) debounceSave('wtl', tl) }, [tl])
-  useEffect(() => { cr.current && (cr.current.scrollTop = cr.current.scrollHeight) }, [msgs])
+  useEffect(() => { if (tasks && !ld) ds('wt', tasks) }, [tasks])
+  useEffect(() => { if (bud && !ld) ds('wb', bud) }, [bud])
+  useEffect(() => { if (tl && !ld) ds('wtl', tl) }, [tl])
+  useEffect(() => { if (chains && !ld) ds('wch', chains) }, [chains])
 
   const ut = (id: string, u: Partial<Task>) => setT(p => p!.map(t => t.id === id ? { ...t, ...u } : t))
   const ub = (id: string, u: Partial<BudgetItem>) => setB(p => p!.map(b => b.id === id ? { ...b, ...u } : b))
   const utl = (id: string, u: Partial<TimelineEvent>) => setTl(p => p!.map(t => t.id === id ? { ...t, ...u } : t))
 
-  if (ld || !tasks || !bud || !tl) return <div style={S.pg}><p style={{ color: '#b5b0aa', textAlign: 'center', marginTop: 80 }}>Loading your wedding brain...</p></div>
+  const ucs = (chainId: string, stepId: string, u: Partial<ChainStep>) => setCh(p => p!.map(c => c.id === chainId ? { ...c, steps: c.steps.map(s => s.id === stepId ? { ...s, ...u } : s) } : c))
+  const addStep = (chainId: string) => setCh(p => p!.map(c => c.id === chainId ? { ...c, steps: [...c.steps, { id: 's' + Date.now(), what: 'New step', who: '', when: '', where: '', notes: '', status: 'planned' as const }] } : c))
+  const delStep = (chainId: string, stepId: string) => setCh(p => p!.map(c => c.id === chainId ? { ...c, steps: c.steps.filter(s => s.id !== stepId) } : c))
+  const addChain = () => setCh(p => [...p!, { id: 'ch' + Date.now(), name: 'New workflow', color: '#8a8580', span: '', steps: [] }])
+  const delChain = (id: string) => setCh(p => p!.filter(c => c.id !== id))
+  const uch = (id: string, u: Partial<Chain>) => setCh(p => p!.map(c => c.id === id ? { ...c, ...u } : c))
+
+  if (ld || !tasks || !bud || !tl || !chains) return <div style={S.pg}><p style={{ color: '#b5b0aa', textAlign: 'center', marginTop: 80 }}>Loading your wedding brain...</p></div>
 
   const hasDep = (t: Task) => t.dep && tasks.find(x => x.id === t.dep)?.status !== 'done'
   const dn = tasks.filter(t => t.status === 'done').length
@@ -61,8 +64,10 @@ export default function WeddingHub() {
   const tq = bud.reduce((s, b) => s + (b.amt || 0), 0)
   const td = bud.filter(b => b.st === 'deposited' || b.st === 'paid').reduce((s, b) => s + (b.amt || 0), 0)
   const tp = bud.filter(b => b.st === 'paid').reduce((s, b) => s + (b.amt || 0), 0)
-  const pill = (bg: string, tx: string) => ({ display: 'inline-block' as const, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: bg, color: tx })
+  const pill = (bg: string, tx: string): React.CSSProperties => ({ display: 'inline-block', fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: bg, color: tx })
   const go = (s: string, z?: string) => { setScr(s); if (z !== undefined) setZone(z) }
+  const toggleChain = (id: string) => setOC(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleGantt = (id: string) => setGO(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   const moveTask = (id: string, dir: number) => {
     setT(prev => {
@@ -73,30 +78,15 @@ export default function WeddingHub() {
     })
   }
 
-  const send = async () => {
-    if (!ci.trim()) return; const msg = ci.trim(); setCi(''); setMsgs(p => [...p, { r: 'u', t: msg }]); setCl(true)
-    try {
-      const ctx = `You're a warm wedding planning assistant. Catholic ceremony St Kilda 12pm, 28 Nov 2026. Reception Mentone, ~100 guests, $30k. No coordinator. Groom 45 min from church. Bride's mum wheelchair. MC is Dom (not asked yet). DJ friend. DIY video.\n\nTasks: ${JSON.stringify(tasks.filter(t => t.status !== 'done').slice(0, 20).map(t => ({ task: t.task, status: STATUSES[t.status]?.lb, zone: ZONES.find(z => z.id === t.zone)?.name })))}\n\nBe concise, warm, actionable. Use **bold** for key points. Under 200 words.`
-      const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: ctx, messages: [{ role: 'user', content: msg }] }) })
-      const d = await res.json()
-      setMsgs(p => [...p, { r: 'a', t: d.content?.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n') || 'Sorry, couldn\'t process that.' }])
-    } catch { setMsgs(p => [...p, { r: 'a', t: 'Something went wrong.' }]) }
-    setCl(false)
-  }
-
-  const fmtMsg = (text: string) => text.split('\n').map((line, i) => {
-    let h = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
-    if (h.startsWith('- ')) h = '\u2022 ' + h.slice(2)
-    return <span key={i}><span dangerouslySetInnerHTML={{ __html: h }} />{i < text.split('\n').length - 1 && <br />}</span>
-  })
+  const stColor = (s: ChainStep['status']) => s === 'done' ? { bg: '#e8f5ee', tx: '#3a7a5a', lb: 'Done' } : s === 'gap' ? { bg: '#fef5e7', tx: '#9a7a3a', lb: 'Gap' } : { bg: '#f5f3f0', tx: '#6a6560', lb: 'Planned' }
 
   const Nav = () => <div style={S.nav}>
-    {([['home', 'Home', '\ud83c\udfe0'], ['roadmap', 'Roadmap', '\ud83d\udccd'], ['timeline', 'The day', '\u23f0'], ['budget', 'Budget', '\ud83d\udcb0'], ['chat', 'Claude', '\ud83d\udcac']] as const).map(([s, l, em]) =>
+    {([['home', 'Home', '\ud83c\udfe0'], ['roadmap', 'Roadmap', '\ud83d\udccd'], ['timeline', 'The day', '\u23f0'], ['budget', 'Budget', '\ud83d\udcb0'], ['logistics', 'Logistics', '\ud83d\udd17']] as const).map(([s, l, em]) =>
       <div key={s} style={{ ...S.ni, color: scr === s ? '#c97a6a' : '#b5b0aa' }} onClick={() => go(s)}><span style={{ fontSize: 18 }}>{em}</span><span style={{ fontSize: 10, fontWeight: 600 }}>{l}</span></div>
     )}
   </div>
 
-  // HOME
+  // ── HOME ──
   if (scr === 'home') return <div style={S.pg}>
     <div style={{ textAlign: 'center', padding: '12px 0 20px' }}>
       <div style={{ fontSize: 12, color: '#b5b0aa', fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase' as const }}>28 November 2026</div>
@@ -132,7 +122,7 @@ export default function WeddingHub() {
     <div style={{ height: 80 }} /><Nav />
   </div>
 
-  // ROADMAP
+  // ── ROADMAP ──
   if (scr === 'roadmap') return <div style={S.pg}>
     <div style={{ fontSize: 20, fontWeight: 700, color: '#4a4540', marginBottom: 4 }}>Your roadmap</div>
     <div style={{ fontSize: 13, color: '#b5b0aa', marginBottom: 20 }}>March through to the big day</div>
@@ -176,7 +166,7 @@ export default function WeddingHub() {
     <div style={{ height: 80 }} /><Nav />
   </div>
 
-  // ZONE
+  // ── ZONE ──
   if (scr === 'zone') {
     const z = ZONES.find(z => z.id === zone); const zt = tasks.filter(t => t.zone === zone)
     const nd = zt.filter(t => t.status !== 'done'); const d = zt.filter(t => t.status === 'done')
@@ -206,7 +196,7 @@ export default function WeddingHub() {
     </div>
   }
 
-  // DETAIL
+  // ── DETAIL ──
   if (scr === 'detail') {
     const t = tasks.find(x => x.id === editT); if (!t) { go('home'); return null }
     return <div style={S.pg}>
@@ -227,17 +217,17 @@ export default function WeddingHub() {
     </div>
   }
 
-  // ADD
+  // ── ADD ──
   if (scr === 'add') return <AddTask zone={zone} onAdd={(t: Task) => { setT(p => [...p!, { ...t, id: 't' + Date.now() }]); go(zone ? 'zone' : 'home') }} onCancel={() => go(zone ? 'zone' : 'home')} />
 
-  // TIMELINE
+  // ── TIMELINE ──
   if (scr === 'timeline') {
     return <div style={S.pg}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div><div style={{ fontSize: 20, fontWeight: 700, color: '#4a4540' }}>28th November 2026</div><div style={{ fontSize: 13, color: '#b5b0aa' }}>Minute by minute</div></div>
         <button style={{ ...S.bt, fontSize: 12, padding: '6px 12px' }} onClick={() => { setTl(p => [...p!, { id: 'tl' + Date.now(), t: '', e: 'New event', w: '' }]); }}>+ Add</button>
       </div>
-      {tl.map((item, i) => {
+      {tl.map((item) => {
         const c = item.big ? '#3a7a5a' : '#9a9590'
         return <div key={item.id} style={{ display: 'flex', gap: 10, marginBottom: 2 }}>
           <div style={{ width: 56, fontSize: 11, color: '#b5b0aa', textAlign: 'right' as const, paddingTop: item.big ? 12 : 10, flexShrink: 0, fontWeight: 500 }}>{item.t}</div>
@@ -252,7 +242,7 @@ export default function WeddingHub() {
     </div>
   }
 
-  // TIMELINE EDIT
+  // ── TIMELINE EDIT ──
   if (scr === 'tlEdit') {
     const item = tl.find(x => x.id === editTl); if (!item) { go('timeline'); return null }
     return <div style={S.pg}>
@@ -270,13 +260,12 @@ export default function WeddingHub() {
     </div>
   }
 
-  // BUDGET
+  // ── BUDGET ──
   if (scr === 'budget') {
-    const cats = BUDGET_CATS
     return <div style={S.pg}>
       <div style={{ fontSize: 20, fontWeight: 700, color: '#4a4540', marginBottom: 16 }}>$30,000 budget</div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {([['\u200bQuoted', tq, '#6a5a8f', '#f0ecf8'], ['\u200bCommitted', td, '#9a7a3a', '#fef5e7'], ['\u200bPaid', tp, '#3a7a5a', '#e8f5ee']] as const).map(([l, v, c, bg]) =>
+        {([['Quoted', tq, '#6a5a8f', '#f0ecf8'], ['Committed', td, '#9a7a3a', '#fef5e7'], ['Paid', tp, '#3a7a5a', '#e8f5ee']] as const).map(([l, v, c, bg]) =>
           <div key={l} style={{ flex: 1, background: bg, borderRadius: 14, padding: '12px 0', textAlign: 'center' as const }}>
             <div style={{ fontSize: 11, color: '#b5b0aa' }}>{l}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: c }}>${v.toLocaleString()}</div>
@@ -293,7 +282,7 @@ export default function WeddingHub() {
         </div>
         <div style={{ fontSize: 12, color: '#b5b0aa', marginTop: 6, textAlign: 'center' as const }}>${(30000 - tq).toLocaleString()} unallocated</div>
       </div>
-      {cats.map(cat => {
+      {BUDGET_CATS.map(cat => {
         const items = bud.filter(b => b.g === cat.id); const catTotal = items.reduce((s, b) => s + (b.amt || 0), 0)
         if (items.length === 0) return null
         return <div key={cat.id} style={{ marginBottom: 12 }}>
@@ -315,7 +304,7 @@ export default function WeddingHub() {
     </div>
   }
 
-  // BUDGET DETAIL
+  // ── BUDGET DETAIL ──
   if (scr === 'budgetD') {
     const b = bud.find(x => x.id === editB); if (!b) { go('budget'); return null }
     return <div style={S.pg}>
@@ -334,29 +323,124 @@ export default function WeddingHub() {
     </div>
   }
 
-  // CHAT
-  if (scr === 'chat') return <div style={{ ...S.pg, display: 'flex', flexDirection: 'column' as const, minHeight: '100vh', padding: 0 }}>
-    <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #eae7e2' }}>
-      <div style={{ fontSize: 17, fontWeight: 700, color: '#4a4540' }}>Ask Claude</div>
-      <div style={{ fontSize: 12, color: '#b5b0aa' }}>Your wedding planning buddy</div>
-    </div>
-    <div ref={cr} style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-      {msgs.length === 0 && <div style={{ textAlign: 'center' as const, padding: '40px 16px', color: '#b5b0aa' }}>
-        <div style={{ fontSize: 28, marginBottom: 12 }}>{'\ud83d\udc90'}</div>
-        <div style={{ fontSize: 14, marginBottom: 16 }}>Ask me anything</div>
-        {['What should I ask the venue manager?', 'Affordable cake for 100?', "What's most urgent?"].map(q => <div key={q} style={{ ...S.bt, display: 'inline-block', margin: 4, fontSize: 12, cursor: 'pointer' }} onClick={() => setCi(q)}>{q}</div>)}
+  // ── LOGISTICS ──
+  if (scr === 'logistics') {
+    // STEP EDIT MODE
+    if (editStep) {
+      const ch = chains.find(c => c.id === editStep.chainId)
+      const st = ch?.steps.find(s => s.id === editStep.stepId)
+      if (!ch || !st) { setES(null); return null }
+      return <div style={S.pg}>
+        <button style={{ ...S.bt, marginBottom: 16 }} onClick={() => setES(null)}>Back</button>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#4a4540', marginBottom: 4 }}>Edit step</div>
+        <div style={{ fontSize: 12, color: ch.color, fontWeight: 600, marginBottom: 16 }}>{ch.name}</div>
+        <div style={S.fl}>What</div><input value={st.what} onChange={e => ucs(ch.id, st.id, { what: e.target.value })} style={S.ip} />
+        <div style={S.fl}>Who</div><input value={st.who} onChange={e => ucs(ch.id, st.id, { who: e.target.value })} placeholder="Unassigned" style={S.ip} />
+        <div style={S.fl}>When</div><input value={st.when} onChange={e => ucs(ch.id, st.id, { when: e.target.value })} placeholder="e.g. Apr, Day of, 2pm" style={S.ip} />
+        <div style={S.fl}>Where</div><input value={st.where} onChange={e => ucs(ch.id, st.id, { where: e.target.value })} placeholder="Location" style={S.ip} />
+        <div style={S.fl}>Day-of time (if applicable)</div><input value={st.dayTime || ''} onChange={e => ucs(ch.id, st.id, { dayTime: e.target.value })} placeholder="e.g. 2:00pm" style={S.ip} />
+        <div style={S.fl}>Status</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          {(['done', 'planned', 'gap'] as const).map(s => { const c = stColor(s); return <button key={s} style={{ ...S.bt, flex: 1, fontSize: 12, background: st.status === s ? c.bg : 'transparent', color: st.status === s ? c.tx : '#b5b0aa', borderColor: st.status === s ? c.tx : '#e0ddd8', fontWeight: st.status === s ? 700 : 400 }} onClick={() => ucs(ch.id, st.id, { status: s })}>{c.lb}</button> })}
+        </div>
+        <div style={S.fl}>Notes</div><textarea value={st.notes} onChange={e => ucs(ch.id, st.id, { notes: e.target.value })} rows={3} style={{ ...S.ip, resize: 'vertical' as const }} />
+        <button style={{ ...S.bt, width: '100%', marginTop: 8, color: '#c97a6a', borderColor: '#c97a6a' }} onClick={() => { delStep(ch.id, st.id); setES(null) }}>Delete step</button>
+        <div style={{ height: 80 }} /><Nav />
+      </div>
+    }
+
+    // MAIN LOGISTICS VIEW
+    return <div style={S.pg}>
+      <div style={{ fontSize: 20, fontWeight: 700, color: '#4a4540', marginBottom: 4 }}>Logistics</div>
+      <div style={{ fontSize: 13, color: '#b5b0aa', marginBottom: 12 }}>Every workflow from start to finish</div>
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        <button style={{ ...S.bt, flex: 1, fontSize: 12, background: logView === 'chains' ? '#4a4540' : 'transparent', color: logView === 'chains' ? '#faf8f5' : '#4a4540', border: logView === 'chains' ? 'none' : '1px solid #e0ddd8' }} onClick={() => setLV('chains')}>Chains</button>
+        <button style={{ ...S.bt, flex: 1, fontSize: 12, background: logView === 'gantt' ? '#4a4540' : 'transparent', color: logView === 'gantt' ? '#faf8f5' : '#4a4540', border: logView === 'gantt' ? 'none' : '1px solid #e0ddd8' }} onClick={() => setLV('gantt')}>Overview</button>
+      </div>
+
+      {logView === 'chains' && <>
+        {chains.map(ch => {
+          const open = openChains.has(ch.id)
+          const done = ch.steps.filter(s => s.status === 'done').length
+          const gaps = ch.steps.filter(s => s.status === 'gap').length
+          return <div key={ch.id} style={{ marginBottom: 6 }}>
+            <div style={{ ...S.cd, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, marginBottom: open ? 0 : 8, borderBottomLeftRadius: open ? 0 : 14, borderBottomRightRadius: open ? 0 : 14 }} onClick={() => toggleChain(ch.id)}>
+              <div style={{ width: 10, height: 10, borderRadius: 5, background: ch.color, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#4a4540' }}>{ch.name}</div>
+                <div style={{ fontSize: 11, color: '#b5b0aa' }}>{ch.span}</div>
+              </div>
+              <div style={{ textAlign: 'right' as const }}>
+                <div style={{ fontSize: 11, color: '#b5b0aa' }}>{done}/{ch.steps.length}</div>
+                {gaps > 0 && <div style={{ fontSize: 10, color: '#c97a6a', fontWeight: 600 }}>{gaps} gaps</div>}
+              </div>
+              <div style={{ color: '#d4d0cc', fontSize: 14, transition: 'transform 0.2s', transform: open ? 'rotate(90deg)' : 'none' }}>&rsaquo;</div>
+            </div>
+            {open && <div style={{ background: '#fff', border: '1px solid #eae7e2', borderTop: 'none', borderBottomLeftRadius: 14, borderBottomRightRadius: 14, padding: '8px 12px 12px', marginBottom: 8 }}>
+              {ch.steps.map((st, si) => {
+                const sc = stColor(st.status)
+                return <div key={st.id}>
+                  <div style={{ display: 'flex', gap: 8, cursor: 'pointer' }} onClick={() => setES({ chainId: ch.id, stepId: st.id })}>
+                    <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', width: 18, flexShrink: 0 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 4, background: ch.color, flexShrink: 0, marginTop: 5 }} />
+                      {si < ch.steps.length - 1 && <div style={{ width: 1.5, flex: 1, background: ch.color, opacity: 0.3, marginTop: 2 }} />}
+                    </div>
+                    <div style={{ flex: 1, padding: '4px 8px', marginBottom: 3, borderRadius: 8, fontSize: 12, background: sc.bg, border: st.status === 'gap' ? '1px dashed ' + sc.tx : '0.5px solid transparent' }}>
+                      {st.when && <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 6, background: 'rgba(0,0,0,0.04)', color: '#8a8580', marginRight: 4 }}>{st.when}</span>}
+                      <span style={{ fontWeight: 500, color: '#4a4540' }}>{st.what}</span>
+                      {st.who && <div style={{ fontSize: 11, color: '#3a7a5a', fontWeight: 500, marginTop: 1 }}>{st.who}</div>}
+                      {st.notes && <div style={{ fontSize: 11, color: st.status === 'gap' ? '#9a7a3a' : '#b5b0aa', marginTop: 1, fontWeight: st.status === 'gap' ? 600 : 400 }}>{st.notes}</div>}
+                    </div>
+                  </div>
+                </div>
+              })}
+              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                <button style={{ ...S.bt, flex: 1, fontSize: 11, padding: '6px' }} onClick={() => addStep(ch.id)}>+ Add step</button>
+                <button style={{ ...S.bt, fontSize: 11, padding: '6px 10px', color: '#c97a6a', borderColor: '#c97a6a' }} onClick={() => { if (confirm('Delete this entire chain?')) delChain(ch.id) }}>Delete chain</button>
+              </div>
+            </div>}
+          </div>
+        })}
+        <button style={{ ...S.bp, width: '100%', marginTop: 8 }} onClick={addChain}>+ New workflow chain</button>
+      </>}
+
+      {logView === 'gantt' && <div style={{ overflowX: 'auto' as const }}>
+        <div style={{ fontSize: 12, color: '#b5b0aa', marginBottom: 12 }}>Tap a chain to expand/collapse its steps on the timeline</div>
+        {chains.map(ch => {
+          const open = ganttOpen.has(ch.id)
+          const daySteps = ch.steps.filter(s => s.dayTime)
+          const done = ch.steps.filter(s => s.status === 'done').length
+          const gaps = ch.steps.filter(s => s.status === 'gap').length
+          return <div key={ch.id} style={{ marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer', background: '#fff', border: '0.5px solid #eae7e2', borderRadius: open ? '10px 10px 0 0' : 10 }} onClick={() => toggleGantt(ch.id)}>
+              <div style={{ width: 8, height: 8, borderRadius: 4, background: ch.color }} />
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#4a4540', flex: 1 }}>{ch.name}</div>
+              <div style={{ fontSize: 10, color: '#b5b0aa' }}>{done}/{ch.steps.length}{gaps > 0 ? ` \u00b7 ${gaps} gaps` : ''}</div>
+              <div style={{ color: '#d4d0cc', fontSize: 12, transition: 'transform 0.2s', transform: open ? 'rotate(90deg)' : 'none' }}>&rsaquo;</div>
+            </div>
+            {open && <div style={{ background: '#fff', border: '0.5px solid #eae7e2', borderTop: 'none', borderRadius: '0 0 10px 10px', padding: '6px 12px 10px' }}>
+              {ch.steps.map((st, si) => {
+                const sc = stColor(st.status)
+                return <div key={st.id} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 2 }}>
+                  <div style={{ width: 50, fontSize: 10, color: '#b5b0aa', textAlign: 'right' as const, paddingTop: 4, flexShrink: 0, fontWeight: 500 }}>{st.dayTime || st.when || ''}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', width: 12, flexShrink: 0 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: 3, background: ch.color, marginTop: 5 }} />
+                    {si < ch.steps.length - 1 && <div style={{ width: 1, flex: 1, background: ch.color, opacity: 0.3 }} />}
+                  </div>
+                  <div style={{ flex: 1, fontSize: 11, padding: '3px 6px', borderRadius: 6, background: sc.bg, border: st.status === 'gap' ? '1px dashed ' + sc.tx : 'none', marginBottom: 2, cursor: 'pointer' }} onClick={() => setES({ chainId: ch.id, stepId: st.id })}>
+                    <span style={{ fontWeight: 500, color: '#4a4540' }}>{st.what}</span>
+                    {st.who && <span style={{ color: '#3a7a5a', fontSize: 10 }}> \u2014 {st.who}</span>}
+                  </div>
+                </div>
+              })}
+            </div>}
+          </div>
+        })}
       </div>}
-      {msgs.map((m, i) => <div key={i} style={{ marginBottom: 12, display: 'flex', justifyContent: m.r === 'u' ? 'flex-end' : 'flex-start' }}>
-        <div style={{ maxWidth: '85%', padding: '10px 14px', borderRadius: 16, fontSize: 13, lineHeight: 1.6, background: m.r === 'u' ? '#4a4540' : '#fff', color: m.r === 'u' ? '#fff' : '#4a4540', border: m.r === 'u' ? 'none' : '1px solid #eae7e2' }}>{m.r === 'a' ? fmtMsg(m.t) : m.t}</div>
-      </div>)}
-      {cl && <div style={{ fontSize: 13, color: '#b5b0aa', padding: 8 }}>Thinking...</div>}
+      <div style={{ height: 80 }} /><Nav />
     </div>
-    <div style={{ padding: '12px 16px 28px', borderTop: '1px solid #eae7e2', display: 'flex', gap: 8 }}>
-      <input value={ci} onChange={e => setCi(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Ask anything..." style={{ ...S.ip, flex: 1, marginBottom: 0 }} />
-      <button style={S.bp} onClick={send}>Send</button>
-    </div>
-    <Nav />
-  </div>
+  }
 
   return null
 }
