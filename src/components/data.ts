@@ -69,14 +69,31 @@ export type MapLocation = {
   id: string; name: string; lat: number; lng: number; color: string; address: string;
 }
 
+export type Note = {
+  id: string; text: string; createdAt: number; catId?: string;
+}
+
 export type ChainStep = {
   id: string; what: string; who: string; when: string; where: string;
   notes: string; status: 'done' | 'planned' | 'gap'; dayTime?: string;
 }
 
 export type Chain = {
-  id: string; name: string; color: string; span: string; steps: ChainStep[];
+  id: string; name: string; color: string; catId: string; span: string; steps: ChainStep[];
 }
+
+export const CATEGORIES = [
+  {id:"venue",name:"Venue + church",color:"#c97a6a",em:"\u26ea"},
+  {id:"ceremony",name:"Ceremony",color:"#8a6aaa",em:"\ud83d\udc92"},
+  {id:"bridal",name:"Bridal party",color:"#6a9a8a",em:"\ud83d\udc8d"},
+  {id:"food",name:"Food + drink",color:"#6a8aaa",em:"\ud83c\udf70"},
+  {id:"decor",name:"Styling + decor",color:"#b98a6a",em:"\ud83c\udf38"},
+  {id:"entertainment",name:"Entertainment",color:"#c97a8a",em:"\ud83c\udfb5"},
+  {id:"legal",name:"Legal + admin",color:"#3a7a5a",em:"\ud83d\udcdd"},
+  {id:"transport",name:"Transport",color:"#9a7a3a",em:"\ud83d\ude97"},
+  {id:"logistics",name:"Day-of logistics",color:"#8a8580",em:"\ud83d\udce6"},
+  {id:"people",name:"People roles",color:"#c04848",em:"\ud83d\udc65"},
+]
 
 export const LOCATIONS: MapLocation[] = [
   {id:"bride",name:"Bride's house",lat:-37.87,lng:145.00,color:"#6a8aaa",address:""},
@@ -88,7 +105,7 @@ export const LOCATIONS: MapLocation[] = [
 ]
 
 export const INITIAL_CHAINS: Chain[] = [
-  {id:"ch1",name:"Legal + documents",color:"#3a7a5a",span:"Mar \u2192 Post",steps:[
+  {id:"ch1",name:"Legal + documents",color:"#3a7a5a",catId:"legal",span:"Mar \u2192 Post",steps:[
     {id:"ls1",what:"Gather original birth certs / passports",who:"",when:"Mar",where:"Home",notes:"Needed for NOIM",status:"gap"},
     {id:"ls2",what:"Lodge NOIM with priest",who:"Both",when:"Mar",where:"Church",notes:"Legal requirement, 1+ month before",status:"gap"},
     {id:"ls3",what:"Confirm 2 witnesses (18+)",who:"",when:"May",where:"",notes:"Physically present at ceremony",status:"planned"},
@@ -96,7 +113,7 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"ls5",what:"Collect marriage docs at pack-down",who:"",when:"Day of",where:"Venue",notes:"DON'T LEAVE AT VENUE",status:"gap",dayTime:"10:00pm"},
     {id:"ls6",what:"Lodge marriage cert with BDM Victoria",who:"",when:"Post week 1",where:"Online",notes:"Time-sensitive",status:"planned"},
   ]},
-  {id:"ch2",name:"Cake",color:"#c97a6a",span:"Apr \u2192 Day of",steps:[
+  {id:"ch2",name:"Cake",color:"#c97a6a",catId:"food",span:"Apr \u2192 Day of",steps:[
     {id:"cs1",what:"Research cake vendors for 100",who:"Both",when:"Apr",where:"",notes:"Small cutting cake + sheet cakes",status:"planned"},
     {id:"cs2",what:"Get quotes from 2-3 vendors",who:"",when:"Apr-May",where:"",notes:"",status:"planned"},
     {id:"cs3",what:"Taste test + book vendor",who:"Both",when:"May",where:"",notes:"",status:"planned"},
@@ -106,7 +123,7 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"cs7",what:"Cake cutting moment",who:"Both",when:"Day of",where:"Venue",notes:"MC cues it. Photographer ready.",status:"planned",dayTime:"~8:00pm"},
     {id:"cs8",what:"Leftover cake \u2014 who takes home?",who:"",when:"Day of",where:"Venue",notes:"",status:"gap",dayTime:"10:00pm"},
   ]},
-  {id:"ch3",name:"Menu + catering",color:"#6a8aaa",span:"Booked \u2192 Day of",steps:[
+  {id:"ch3",name:"Menu + catering",color:"#6a8aaa",catId:"food",span:"Booked \u2192 Day of",steps:[
     {id:"ms1",what:"Caterer booked, deposit paid",who:"",when:"Done",where:"",notes:"$75/head, flexible",status:"done"},
     {id:"ms2",what:"Second meeting \u2014 choose dishes",who:"Both",when:"Apr",where:"",notes:"Mains, sides, shared platters. Kids menu.",status:"planned"},
     {id:"ms3",what:"Confirm canapes for cocktail hour",who:"",when:"Apr",where:"",notes:"Included or extra?",status:"planned"},
@@ -116,7 +133,7 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"ms7",what:"Canapes served",who:"Caterer",when:"Day of",where:"Venue",notes:"Cocktail hour",status:"planned",dayTime:"4:00pm"},
     {id:"ms8",what:"Dinner served",who:"Caterer",when:"Day of",where:"Venue",notes:"Sit-down",status:"planned",dayTime:"6:00pm"},
   ]},
-  {id:"ch4",name:"Flowers",color:"#8a6aaa",span:"Booked \u2192 Day of",steps:[
+  {id:"ch4",name:"Flowers",color:"#8a6aaa",catId:"decor",span:"Booked \u2192 Day of",steps:[
     {id:"fs1",what:"Florist booked \u2014 $1,200",who:"",when:"Done",where:"",notes:"$500 deposit",status:"done"},
     {id:"fs2",what:"Confirm delivery logistics with florist",who:"",when:"Mar",where:"",notes:"How many locations? Pickup day before?",status:"gap"},
     {id:"fs3",what:"Final confirmation with florist",who:"",when:"Oct",where:"",notes:"Flowers, delivery, times",status:"planned"},
@@ -126,14 +143,14 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"fs7",what:"Centrepieces to venue",who:"Setup crew",when:"Day of",where:"Venue",notes:"",status:"planned",dayTime:"2:00pm"},
     {id:"fs8",what:"End of night \u2014 flowers home?",who:"",when:"Day of",where:"Venue",notes:"Leave or pack?",status:"gap",dayTime:"10:00pm"},
   ]},
-  {id:"ch5",name:"Rings",color:"#6a9a8a",span:"Now \u2192 Ceremony",steps:[
+  {id:"ch5",name:"Rings",color:"#6a9a8a",catId:"bridal",span:"Now \u2192 Ceremony",steps:[
     {id:"rs1",what:"Buy wedding rings",who:"Both",when:"Now",where:"",notes:"4-6 weeks for sizing/engraving",status:"planned"},
     {id:"rs2",what:"Collect rings \u2014 check sizing",who:"Both",when:"+6 weeks",where:"Jeweller",notes:"",status:"planned"},
     {id:"rs3",what:"WHO has rings morning of?",who:"",when:"Day of",where:"",notes:"Best man? Ring wrangler?",status:"gap",dayTime:"morning"},
     {id:"rs4",what:"Kid cousins carry rings \u2014 who manages?",who:"",when:"Day of",where:"Church",notes:"Parent or bridal party member",status:"gap",dayTime:"12:00pm"},
     {id:"rs5",what:"Exchange rings at ceremony",who:"Both",when:"Day of",where:"Church",notes:"",status:"planned",dayTime:"12:00pm"},
   ]},
-  {id:"ch6",name:"Readings + church music",color:"#b98a6a",span:"Mar \u2192 Ceremony",steps:[
+  {id:"ch6",name:"Readings + church music",color:"#b98a6a",catId:"ceremony",span:"Mar \u2192 Ceremony",steps:[
     {id:"rms1",what:"Meet with priest",who:"Both",when:"Mar",where:"Church",notes:"Also lodge NOIM",status:"planned"},
     {id:"rms2",what:"Decide choir ($1,600) vs cheaper",who:"Both",when:"Apr",where:"",notes:"Needs discussion",status:"gap"},
     {id:"rms3",what:"Choose readings (2 + psalm + gospel)",who:"Both",when:"May",where:"",notes:"Priest can guide",status:"planned"},
@@ -143,7 +160,7 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"rms7",what:"Church rehearsal",who:"All",when:"Night before",where:"Church",notes:"Readers, processional walk-through",status:"planned"},
     {id:"rms8",what:"Performed at ceremony",who:"All",when:"Day of",where:"Church",notes:"",status:"planned",dayTime:"12:00pm"},
   ]},
-  {id:"ch7",name:"Seating + stationery",color:"#8aaa6a",span:"Mar \u2192 Day of",steps:[
+  {id:"ch7",name:"Seating + stationery",color:"#8aaa6a",catId:"decor",span:"Mar \u2192 Day of",steps:[
     {id:"ss1",what:"Chase ~50 non-RSVP guests",who:"Both",when:"Mar",where:"",notes:"Text/call",status:"planned"},
     {id:"ss2",what:"Compile final guest list",who:"",when:"Sep",where:"",notes:"From WithJoy",status:"planned"},
     {id:"ss3",what:"Build seating plan",who:"Both",when:"Sep",where:"",notes:"Dynamics, kids, mum wheelchair",status:"planned"},
@@ -152,14 +169,14 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"ss6",what:"Setup crew places at tables",who:"Setup crew",when:"Day of",where:"Venue",notes:"Need layout plan",status:"planned",dayTime:"2:00pm"},
     {id:"ss7",what:"Collect (keepsake?)",who:"",when:"Day of",where:"Venue",notes:"",status:"planned",dayTime:"10:00pm"},
   ]},
-  {id:"ch8",name:"Groom + groomsmen outfits",color:"#a99a6a",span:"Apr \u2192 Day of",steps:[
+  {id:"ch8",name:"Groom + groomsmen outfits",color:"#a99a6a",catId:"bridal",span:"Apr \u2192 Day of",steps:[
     {id:"gs1",what:"Buy groom suit + bow tie",who:"Groom",when:"Apr",where:"",notes:"Clean black",status:"planned"},
     {id:"gs2",what:"Send colour ref to 4 groomsmen",who:"Groom",when:"Jun",where:"",notes:"After suit bought",status:"planned"},
     {id:"gs3",what:"Groomsmen buy matching suits",who:"Groomsmen",when:"Jul-Sep",where:"",notes:"Own suits, coordinated",status:"planned"},
     {id:"gs4",what:"Everyone confirms + sends photo",who:"All",when:"Nov",where:"",notes:"",status:"planned"},
     {id:"gs5",what:"Suit up at groom's house",who:"All",when:"Day of",where:"Groom's house",notes:"Leave by 10:30",status:"planned",dayTime:"~9:30am"},
   ]},
-  {id:"ch9",name:"DJ + entertainment",color:"#c97a8a",span:"Mar \u2192 Day of",steps:[
+  {id:"ch9",name:"DJ + entertainment",color:"#c97a8a",catId:"entertainment",span:"Mar \u2192 Day of",steps:[
     {id:"ds1",what:"Confirm speakers for DJ friend",who:"",when:"Mar",where:"",notes:"Family member has them?",status:"gap"},
     {id:"ds2",what:"Build playlist",who:"Both",when:"Jul",where:"",notes:"Must-plays + do-not-plays",status:"planned"},
     {id:"ds3",what:"Share playlist with DJ",who:"",when:"Oct",where:"",notes:"Confirm first dance",status:"planned"},
@@ -168,7 +185,7 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"ds6",what:"First dance",who:"Both",when:"Day of",where:"Venue",notes:"Custom cousin song",status:"planned",dayTime:"7:40pm"},
     {id:"ds7",what:"Dance floor until last song",who:"DJ",when:"Day of",where:"Venue",notes:"",status:"planned",dayTime:"7:50pm"},
   ]},
-  {id:"ch10",name:"Transport",color:"#9a7a3a",span:"Day of",steps:[
+  {id:"ch10",name:"Transport",color:"#9a7a3a",catId:"transport",span:"Day of",steps:[
     {id:"ts1",what:"Groom + groomsmen leave",who:"Groom",when:"Day of",where:"Groom's \u2192 church",notes:"45 min. Who drives?",status:"planned",dayTime:"10:30am"},
     {id:"ts2",what:"Sprinter picks up bride",who:"Sprinter",when:"Day of",where:"Bride's \u2192 church",notes:"$800, 5hr clock",status:"planned",dayTime:"10:45am"},
     {id:"ts3",what:"Mum's accessible vehicle",who:"",when:"Day of",where:"\u2192 church",notes:"Sorted",status:"planned",dayTime:"~11:00am"},
@@ -178,13 +195,13 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"ts7",what:"Guests self-drive church \u2192 venue",who:"Guests",when:"Day of",where:"",notes:"Do they know the way?",status:"gap",dayTime:"~1:15pm"},
     {id:"ts8",what:"Uber to Richmond hotel",who:"Both",when:"Day of",where:"Venue \u2192 hotel",notes:"~30 min",status:"planned",dayTime:"~10:15pm"},
   ]},
-  {id:"ch11",name:"Overnight bags",color:"#4a7a9e",span:"Day before \u2192 Night",steps:[
+  {id:"ch11",name:"Overnight bags",color:"#4a7a9e",catId:"logistics",span:"Day before \u2192 Night",steps:[
     {id:"obs1",what:"Pack overnight bags",who:"Both",when:"Night before",where:"Home",notes:"Clothes, toiletries, charger",status:"planned"},
     {id:"obs2",what:"Bags in whose car?",who:"",when:"Day of",where:"",notes:"Can't go in sprinter",status:"gap",dayTime:"morning"},
     {id:"obs3",what:"Someone checks into hotel + drops bags",who:"",when:"Day of",where:"Richmond hotel",notes:"During the gap",status:"gap",dayTime:"~3:00pm"},
     {id:"obs4",what:"Arrive at hotel \u2014 bags waiting",who:"Both",when:"Day of",where:"Hotel",notes:"",status:"planned",dayTime:"~10:30pm"},
   ]},
-  {id:"ch12",name:"Decorations",color:"#8a8580",span:"Now \u2192 Pack-down",steps:[
+  {id:"ch12",name:"Decorations",color:"#8a8580",catId:"decor",span:"Now \u2192 Pack-down",steps:[
     {id:"dcs1",what:"Finalise centrepiece design",who:"Both",when:"Now",where:"",notes:"Half done",status:"planned"},
     {id:"dcs2",what:"Source battery candles + cheesecloth",who:"",when:"Jun",where:"",notes:"No real candles",status:"planned"},
     {id:"dcs3",what:"Make/order welcome sign + card box",who:"",when:"Sep",where:"",notes:"DIY or buy?",status:"planned"},
@@ -194,7 +211,7 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"dcs7",what:"Setup crew places everything",who:"Setup crew",when:"Day of",where:"Venue",notes:"Need layout plan",status:"planned",dayTime:"2:00pm"},
     {id:"dcs8",what:"Pack-down \u2014 collect ALL",who:"",when:"Day of",where:"Venue",notes:"2-3 people. Card box = CASH.",status:"gap",dayTime:"10:00pm"},
   ]},
-  {id:"ch13",name:"Camcorders + DIY video",color:"#6a5a8f",span:"Jul \u2192 Post",steps:[
+  {id:"ch13",name:"Camcorders + DIY video",color:"#6a5a8f",catId:"logistics",span:"Jul \u2192 Post",steps:[
     {id:"vs1",what:"Source remaining camcorders + film cameras",who:"",when:"Jul",where:"",notes:"Some owned, some to source",status:"planned"},
     {id:"vs2",what:"Create mission cards for tables",who:"",when:"Oct",where:"",notes:"Instructions for guests",status:"planned"},
     {id:"vs3",what:"Charge ALL cameras",who:"",when:"Night before",where:"Home",notes:"Every single one",status:"planned"},
@@ -204,7 +221,7 @@ export const INITIAL_CHAINS: Chain[] = [
     {id:"vs7",what:"Collect EVERY camera",who:"",when:"Day of",where:"Venue",notes:"They WILL get lost if nobody assigned",status:"gap",dayTime:"10:00pm"},
     {id:"vs8",what:"All footage to one person",who:"",when:"Post",where:"",notes:"Compile + edit",status:"planned"},
   ]},
-  {id:"ch14",name:"People roles (day-of)",color:"#c04848",span:"Assign by Oct",steps:[
+  {id:"ch14",name:"People roles (day-of)",color:"#c04848",catId:"people",span:"Assign by Oct",steps:[
     {id:"ps1",what:"Morning coordinator (bride's side)",who:"",when:"Assign by Oct",where:"Bride's house",notes:"Keeps morning on track",status:"gap"},
     {id:"ps2",what:"Church ushers (2)",who:"",when:"Assign by Oct",where:"Church",notes:"Seat guests, position mum",status:"gap"},
     {id:"ps3",what:"Family photo wrangler",who:"",when:"Assign by Oct",where:"Church",notes:"Rounds up people fast",status:"gap"},
@@ -344,3 +361,5 @@ export const INITIAL_TIMELINE: TimelineEvent[] = [
   {id:"tl24",t:"10:00pm",e:"Pack-down",w:"Crew TBD",view:"both",locId:"venue"},
   {id:"tl25",t:"~10:15pm",e:"Uber to hotel",w:"Richmond",view:"both",locId:"hotel"},
 ]
+
+export const INITIAL_NOTES: Note[] = []
